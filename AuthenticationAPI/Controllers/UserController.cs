@@ -20,7 +20,7 @@ namespace AuthenticationAPI.Controllers
         [HttpPost("register")]
         public async Task<IActionResult> Register(UserRegistrationRequest request)
         {
-            if(_context.Users.Any(u => u.Email == request.Email))
+            if (_context.Users.Any(u => u.Email == request.Email))
             {
                 return BadRequest("User already exists.");
             }
@@ -69,6 +69,20 @@ namespace AuthenticationAPI.Controllers
 
             return Ok("User verified!😉");
         }
-        
+
+        [HttpPost("forgot-password")]
+        public async Task<IActionResult> ForgotPassword(string email)
+        {
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email.Equals(email));
+
+            if (user is null) return BadRequest("User not found.");
+
+            user.PasswordResetToken = TokenHelper.CreateRandomToken();
+            user.ResetTokenExpires = DateTime.Now.AddHours(1);
+            await _context.SaveChangesAsync();
+
+            return Ok("You may now reset your password");
+        }
+
     }
 }
