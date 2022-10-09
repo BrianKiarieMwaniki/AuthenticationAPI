@@ -2,7 +2,7 @@
 
 namespace AuthenticationAPI.Models
 {
-    public class UserLoginModel
+    public class UserLoginRequest
     {
         [Required, EmailAddress]
         public string Email { get; set; } = string.Empty;
