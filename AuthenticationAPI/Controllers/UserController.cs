@@ -83,6 +83,25 @@ namespace AuthenticationAPI.Controllers
 
             return Ok("You may now reset your password");
         }
+        
+        [HttpPost("reset-password")]
+        public async Task<IActionResult> ResetPassword(ResetPasswordRequest request)
+        {
+            var user = await _context.Users.FirstOrDefaultAsync(u => !string.IsNullOrWhiteSpace(u.PasswordResetToken) && u.PasswordResetToken.Equals(request.Token));
+
+            if (user is null || user.ResetTokenExpires < DateTime.Now) return BadRequest("Invalid Token.");
+
+            PasswordHelper.CreatePasswordHash(request.Password, out byte[] passwordHash, out byte[] passwordSalt);
+
+            user.PasswordHash = passwordHash;
+            user.PasswordSalt = passwordSalt;
+            user.ResetTokenExpires = null;
+            user.PasswordResetToken = null;
+
+            await _context.SaveChangesAsync();
+
+            return Ok("Password successfully reset.");
+        }
 
     }
 }
