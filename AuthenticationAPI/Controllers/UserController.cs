@@ -56,6 +56,19 @@ namespace AuthenticationAPI.Controllers
             return Ok($"Welcome back, {user.Email}!😊");
         }
 
+
+        [HttpPost("verify")]
+        public async Task<IActionResult> Verify(string token)
+        {
+            var user = await _context.Users.FirstOrDefaultAsync(u => !string.IsNullOrWhiteSpace(u.VerificationToken) && u.VerificationToken.Equals(token));
+
+            if (user is null) return BadRequest("Invalid token");
+
+            user.VerifiedAt = DateTime.Now;
+            await _context.SaveChangesAsync();
+
+            return Ok("User verified!😉");
+        }
         
     }
 }
