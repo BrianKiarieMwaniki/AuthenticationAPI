@@ -1,5 +1,6 @@
 ﻿using AuthenticationAPI.Data;
 using AuthenticationAPI.Utils;
+using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Cryptography;
 using System.Text;
@@ -11,15 +12,19 @@ namespace AuthenticationAPI.Controllers
     public class UserController : ControllerBase
     {
         private readonly DataContext _context;
+        private readonly IMapper _mapper;
 
-        public UserController(DataContext context)
+        public UserController(DataContext context, IMapper mapper)
         {
             _context = context;
+            _mapper = mapper;
         }
 
         [HttpPost("register")]
-        public async Task<IActionResult> Register(UserRegistrationRequest request)
+        public async Task<IActionResult> Register(RegisterDTO request)
         {
+            var user = _mapper.Map<User>(request);
+
             if (_context.Users.Any(u => u.Email == request.Email))
             {
                 return BadRequest("User already exists.");
@@ -27,7 +32,7 @@ namespace AuthenticationAPI.Controllers
 
             PasswordHelper.CreatePasswordHash(request.Password, out byte[] passwordHash, out byte[] passwordSalt);
 
-            var user = new User
+            user = new User
             {
                 Email = request.Email,
                 PasswordHash = passwordHash,
@@ -42,7 +47,7 @@ namespace AuthenticationAPI.Controllers
         }
 
         [HttpPost("login")]
-        public async Task<IActionResult> Login(UserLoginRequest request)
+        public async Task<IActionResult> Login(LoginDTO request)
         {
             var user = await _context.Users.FirstOrDefaultAsync(u => u.Email.Equals(request.Email));
 
@@ -85,9 +90,9 @@ namespace AuthenticationAPI.Controllers
         }
         
         [HttpPost("reset-password")]
-        public async Task<IActionResult> ResetPassword(ResetPasswordRequest request)
+        public async Task<IActionResult> ResetPassword(ResetPasswordDTO request)
         {
-            var user = await _context.Users.FirstOrDefaultAsync(u => !string.IsNullOrWhiteSpace(u.PasswordResetToken) && u.PasswordResetToken.Equals(request.Token));
+            var user = await _context.Users.FirstOrDefaultAsync(u => !string.IsNullOrWhiteSpace(u.PasswordResetToken) && u.PasswordResetToken.Equals(request.PasswordResetToken));
 
             if (user is null || user.ResetTokenExpires < DateTime.Now) return BadRequest("Invalid Token.");
 

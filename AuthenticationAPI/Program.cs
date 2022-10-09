@@ -1,5 +1,6 @@
 global using AuthenticationAPI.Models;
 global using Microsoft.EntityFrameworkCore;
+global using AuthenticationAPI.DTOs.User;
 using AuthenticationAPI.Data;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -7,11 +8,14 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 
 builder.Services.AddControllers();
+builder.Services.AddDbContext<DataContext>();
+
+
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-builder.Services.AddDbContext<DataContext>();
+builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
 
 var app = builder.Build();
 
