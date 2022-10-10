@@ -2,6 +2,7 @@ global using AuthenticationAPI.Models;
 global using Microsoft.EntityFrameworkCore;
 global using AuthenticationAPI.DTOs.User;
 using AuthenticationAPI.Data;
+using AuthenticationAPI.Utils;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -16,6 +17,8 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
+
+builder.Services.AddSingleton<ITokenManager, TokenManager>();
 
 var app = builder.Build();
 

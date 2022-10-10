@@ -13,11 +13,13 @@ namespace AuthenticationAPI.Controllers
     {
         private readonly DataContext _context;
         private readonly IMapper _mapper;
+        private readonly ITokenManager _tokenManager;
 
-        public UserController(DataContext context, IMapper mapper)
+        public UserController(DataContext context, IMapper mapper, ITokenManager tokenManager)
         {
             _context = context;
             _mapper = mapper;
+            _tokenManager = tokenManager;
         }
 
         [HttpPost("register")]
@@ -40,7 +42,7 @@ namespace AuthenticationAPI.Controllers
                 Email = request.Email,
                 PasswordHash = passwordHash,
                 PasswordSalt = passwordSalt,
-                AccessToken = TokenManager.CreateRandomToken()
+                AccessToken = _tokenManager.CreateJwtToken(user)
             };
 
             _context.Users.Add(user);
@@ -61,7 +63,17 @@ namespace AuthenticationAPI.Controllers
             if (!PasswordManager.VerifyPasswordHash(request.Password, user.PasswordHash, user.PasswordSalt))
                 return BadRequest("Password is incorrect...");
 
-            return Ok($"Welcome back, {user.Email}!😊");
+            if(!string.IsNullOrWhiteSpace(user.AccessToken))
+            {
+                if(_tokenManager.GetTokenExpireDate(user.AccessToken) < DateTime.UtcNow)
+                {
+                    user.AccessToken = _tokenManager.CreateJwtToken(user);
+                }
+            }
+
+            await _context.SaveChangesAsync();
+
+            return Ok(user.AccessToken);
         }
 
 
@@ -85,7 +97,7 @@ namespace AuthenticationAPI.Controllers
 
             if (user is null) return BadRequest("User not found.");
 
-            user.PasswordResetToken = TokenManager.CreateRandomToken();
+            user.PasswordResetToken = _tokenManager.CreateJwtToken(user, isResetPasswordToken: true);
             user.ResetTokenExpires = DateTime.Now.AddHours(1);
             await _context.SaveChangesAsync();
 
@@ -97,7 +109,11 @@ namespace AuthenticationAPI.Controllers
         {
             var user = await _context.Users.FirstOrDefaultAsync(u => !string.IsNullOrWhiteSpace(u.PasswordResetToken) && u.PasswordResetToken.Equals(request.PasswordResetToken));
 
+
             if (user is null || user.ResetTokenExpires < DateTime.Now) return BadRequest("Invalid Token.");
+
+            if (!string.IsNullOrWhiteSpace(user.PasswordResetToken) && _tokenManager.GetTokenExpireDate(user.PasswordResetToken) < DateTime.UtcNow)
+                return BadRequest("You were too late to reset. Try Again");
 
             PasswordManager.CreatePasswordHash(request.Password, out byte[] passwordHash, out byte[] passwordSalt);
 
