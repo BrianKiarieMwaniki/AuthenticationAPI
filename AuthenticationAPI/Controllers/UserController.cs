@@ -30,14 +30,14 @@ namespace AuthenticationAPI.Controllers
                 return BadRequest("User already exists.");
             }
 
-            PasswordHelper.CreatePasswordHash(request.Password, out byte[] passwordHash, out byte[] passwordSalt);
+            PasswordManager.CreatePasswordHash(request.Password, out byte[] passwordHash, out byte[] passwordSalt);
 
             user = new User
             {
                 Email = request.Email,
                 PasswordHash = passwordHash,
                 PasswordSalt = passwordSalt,
-                VerificationToken = TokenHelper.CreateRandomToken()
+                AccessToken = TokenManager.CreateRandomToken()
             };
 
             _context.Users.Add(user);
@@ -55,7 +55,7 @@ namespace AuthenticationAPI.Controllers
 
             if (user.VerifiedAt is null) return BadRequest("Not verified");
 
-            if (!PasswordHelper.VerifyPasswordHash(request.Password, user.PasswordHash, user.PasswordSalt))
+            if (!PasswordManager.VerifyPasswordHash(request.Password, user.PasswordHash, user.PasswordSalt))
                 return BadRequest("Password is incorrect...");
 
             return Ok($"Welcome back, {user.Email}!😊");
@@ -65,7 +65,7 @@ namespace AuthenticationAPI.Controllers
         [HttpPost("verify")]
         public async Task<IActionResult> Verify(string token)
         {
-            var user = await _context.Users.FirstOrDefaultAsync(u => !string.IsNullOrWhiteSpace(u.VerificationToken) && u.VerificationToken.Equals(token));
+            var user = await _context.Users.FirstOrDefaultAsync(u => !string.IsNullOrWhiteSpace(u.AccessToken) && u.AccessToken.Equals(token));
 
             if (user is null) return BadRequest("Invalid token");
 
@@ -82,7 +82,7 @@ namespace AuthenticationAPI.Controllers
 
             if (user is null) return BadRequest("User not found.");
 
-            user.PasswordResetToken = TokenHelper.CreateRandomToken();
+            user.PasswordResetToken = TokenManager.CreateRandomToken();
             user.ResetTokenExpires = DateTime.Now.AddHours(1);
             await _context.SaveChangesAsync();
 
@@ -96,7 +96,7 @@ namespace AuthenticationAPI.Controllers
 
             if (user is null || user.ResetTokenExpires < DateTime.Now) return BadRequest("Invalid Token.");
 
-            PasswordHelper.CreatePasswordHash(request.Password, out byte[] passwordHash, out byte[] passwordSalt);
+            PasswordManager.CreatePasswordHash(request.Password, out byte[] passwordHash, out byte[] passwordSalt);
 
             user.PasswordHash = passwordHash;
             user.PasswordSalt = passwordSalt;

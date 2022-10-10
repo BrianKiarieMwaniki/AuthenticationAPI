@@ -2,7 +2,7 @@
 
 namespace AuthenticationAPI.Utils
 {
-    public static class TokenHelper
+    public static class TokenManager
     {
         public static string CreateRandomToken()
         {
