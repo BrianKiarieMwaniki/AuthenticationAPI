@@ -30,10 +30,13 @@ namespace AuthenticationAPI.Controllers
                 return BadRequest("User already exists.");
             }
 
+            if (_context.Users.Any(u => u.Username == request.Username)) return BadRequest("Username already used!");
+
             PasswordManager.CreatePasswordHash(request.Password, out byte[] passwordHash, out byte[] passwordSalt);
 
             user = new User
             {
+                Username = request.Username,
                 Email = request.Email,
                 PasswordHash = passwordHash,
                 PasswordSalt = passwordSalt,
